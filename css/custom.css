@@ -1,0 +1,168 @@
+.dwm_main .booked a, .dwm_main .booking, .dwm_main .booked span.saving{
+    position: relative;
+}
+
+.awaiting_approval a::before {
+  content: '[For Approval]';
+  color:red;
+}
+
+
+.awaiting_approval.both {
+  background-color: #E1AD01;
+  color:#000;
+}
+
+.awaiting_approval .I{
+  background-color: #E1AD01;
+  color:#000;
+  opacity:1;
+}
+
+.private {
+  opacity: 1;
+}
+
+
+
+.standard fieldset div span:not(.none){
+  display: inline-block;
+  vertical-align: top;
+  margin-right: 1em;
+  color:red;
+}
+
+.standard textarea {
+  margin-right: 1em;
+}
+
+/* Modal styling */
+.modal, .nmodal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  background: rgba(41, 2, 68, 0.88); /* Background with opacity */
+  justify-content: center; /* Center horizontally */
+  align-items: center; /* Center vertically */
+}
+
+/* Modal content */
+.modal-content, .nmodal-content {
+    background-color: #fff;
+    margin: 15% auto; /* Center the modal */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 50%; /* Width based on content */
+    max-width: 90%; /* Ensure it doesn't exceed the viewport */
+    height: auto; /* Height based on content */
+    max-height: 80%; /* Prevent it from taking up the full screen */
+    overflow-y: auto; /* Enable vertical scrolling if content exceeds max height */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Optional: add shadow for better visibility */
+}
+
+/* Close buttons */
+.close-btn, .nclose-btn {
+  color: #aaa;
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.close-btn:hover, .close-btn:focus,
+.nclose-btn:hover, .nclose-btn:focus {
+  color: #000;
+}
+
+
+/*navigation*/
+
+nav.menu {
+  display: -ms-flexbox;
+  display: flex;
+  flex-wrap: wrap;
+  font-size:medium;
+}
+
+.banner nav a,
+nav.logon input,
+nav.logon span {
+  display: inline-block;
+  text-align: center;
+  padding: 0.3rem 0.75rem 0.3rem 0.75rem;
+  margin-right: -0.75rem;
+  margin-left: 0.75rem;
+  line-height: 1.5em;
+  border-radius: 0.8em;
+  font-size: medium;
+}
+
+/*.view_entry #entry td:first-child,*/
+#entry tr:nth-child(7),
+#entry tr:nth-child(14),
+#entry tr:nth-child(16){
+    display: none;
+}
+
+/*- ADMIN -*/
+/*
+#room_form form {
+  width: 100%;
+  padding: 0 0 2em 0;
+}
+
+.standard {
+  float: none;
+  margin-top: 2.0em;
+}
+
+div.datatable_container {
+  float: none;
+}
+
+td, th {
+	vertical-align: middle;
+}
+
+div#area_form, div#room_form {
+  float: none;
+}
+
+.index .container {
+  width: 100%;
+}
+
+.minicalendars {
+  display: none;
+}
+
+.view_entry #registration .standard fieldset > div > label {
+  display: none;
+}
+
+.nav-item > a {
+  color: rgba(255,255,255,.55);
+  padding-right: .5rem;
+  padding-left: .5rem;
+  background: 0 0;
+  border: 0;
+  border-radius: .25rem;
+  display: block;
+  text-decoration: none;
+  transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out;
+}
+
+.qr-svg {
+  transform: none;
+}
+
+button.btn:disabled {
+  pointer-events: auto !important;  /* in order to display tooltips */
+  /*cursor: not-allowed;
+}*/
