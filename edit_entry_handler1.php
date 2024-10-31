@@ -375,19 +375,15 @@ if (isset($month_relative_ord) && isset($month_relative_day))
   $month_relative = $month_relative_ord . $month_relative_day;
 }
 
-// Handle private bookings.
-// If the area settings allow users to make private bookings then use the value from
-// the form, unless the privacy status is forced and the user is not an admin (admins
-// are allowed to make public bookings if they want, even if the status is forced).
-// Otherwise the booking is not private, unless the status is forced, in which case
-// the default applies, whether or not the user is an admin.
-if ($private_enabled)
+// Handle private booking
+// Enforce config file settings if needed
+if ($private_mandatory && !is_book_admin())
 {
-  $isprivate = (!is_book_admin() && $private_mandatory) ? $private_default : (bool) $private;
+  $isprivate = $private_default;
 }
 else
 {
-  $isprivate = ($private_mandatory) ? $private_default : false;
+  $isprivate = (bool) $private;
 }
 
 // Make sure the area corresponds to the room that is being booked
