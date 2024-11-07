@@ -1,0 +1,77 @@
+<?php
+declare(strict_types=1);
+namespace MRBS;
+
+
+// A helper class to build a DB object, dependent on the database type required
+class DBFactory
+{
+  // The SensitiveParameter attribute needs to be on a separate line for PHP 7.
+  // The attribute is only recognised by PHP 8.2 and later.
+  public static function create(
+    string $db_system,
+    string $db_host,
+    #[\SensitiveParameter]
+    string $db_username,
+    #[\SensitiveParameter]
+    string $db_password,
+    #[\SensitiveParameter]
+    string $db_name,
+    bool $persist=false,
+    ?int $db_port=null,
+    array $db_options=[]) : DB
+  {
+    self::checkExtensionEnabled($db_system);
+
+    switch ($db_system)
+    {
+      case 'mysql':
+      case 'mysqli':
+        $class_name = 'DB_mysql';
+        break;
+
+      case 'pgsql':
+        $class_name = 'DB_pgsql';
+        break;
+
+      default:
+        throw new Exception("Unsupported database driver '$db_system'");
+        break;
+    }
+
+    $class_name = __NAMESPACE__ . '\\' . $class_name;
+    return new $class_name($db_host, $db_username, $db_password, $db_name, $persist, $db_port, $db_options);
+  }
+
+
+  // Check that the appropriate PDO extension is enabled.  This can't always be
+  // done in the constructor of the class itself because the class can refer to a
+  // driver-specific constant.
+  private static function checkExtensionEnabled(string $db_system) : void
+  {
+    // Check for the existence of a driver-specific constant
+    switch ($db_system)
+    {
+      case 'mysql':
+      case 'mysqli':
+        $constant_name = 'PDO::MYSQL_ATTR_FOUND_ROWS';
+        $extension = 'pdo_mysql';
+        break;
+
+      case 'pgsql':
+        $constant_name = 'PDO::PGSQL_ATTR_DISABLE_PREPARES';
+        $extension = 'pdo_pgsql';
+        break;
+
+      default:
+        return;
+    }
+
+    if (!defined($constant_name))
+    {
+      $message = "Undefined constant $constant_name.  Check that the $extension extension is enabled " .
+                 "in your php.ini file.";
+      throw new Exception($message);
+    }
+  }
+}
