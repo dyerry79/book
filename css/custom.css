@@ -168,4 +168,19 @@ div#holiday_form {
   margin-right: 1em
 }
 
+.button-container {
+	display: flex;
+	gap: 8px; /* Space between buttons */
+	align-items: center;
+}
+.inline-form {
+	display: inline;
+}
+
+.success-message {
+	color: green;
+	font-weight: bold;
+	margin-bottom: 15px;
+}
+
 

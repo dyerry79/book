@@ -707,5 +707,6 @@ $vocab["holiday_date"]       = "Date";
 $vocab["add_holiday"]        = "Add Holiday";
 $vocab["existing_holidays"]  = "Holidays";
 $vocab["delete_holiday"]     = "Delete";
+$vocab["update_holiday"]     = "Update Holiday";
 
 

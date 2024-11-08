@@ -39,6 +39,7 @@ window.onclick = function(event) {
     }
 };
 
+/*
 // Add event listeners for close buttons
 document.querySelectorAll('.close-btn, .nclose-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
@@ -47,5 +48,9 @@ document.querySelectorAll('.close-btn, .nclose-btn').forEach(function(btn) {
             closeModal(modal); // Hide the modal
         }
     });
-});
+});*/
+
+function confirmDeletion() {
+	return confirm("Are you sure you want to delete this holiday?");
+}
 

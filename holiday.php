@@ -7,12 +7,8 @@ use MRBS\Form\ElementFieldset;
 use MRBS\Form\ElementImg;
 use MRBS\Form\ElementInputImage;
 use MRBS\Form\ElementInputSubmit;
-use MRBS\Form\FieldInputEmail;
-use MRBS\Form\FieldInputNumber;
 use MRBS\Form\FieldInputText;
 use MRBS\Form\FieldInputSubmit;
-use MRBS\Form\FieldSelect;
-use MRBS\FieldInputDate;
 use MRBS\Form\Form;
 
 require "defaultincludes.inc";
@@ -26,8 +22,24 @@ if (!is_admin()) {
 // CSRF token check
 Form::checkToken(true);
 
-// Form for adding new holidays
-function generate_holiday_form() : void
+// Define success message based on URL parameter
+$success_message = '';
+if (isset($_GET['success'])) {
+    switch ($_GET['success']) {
+        case 'added':
+            $success_message = "Holiday successfully added.";
+            break;
+        case 'updated':
+            $success_message = "Holiday successfully updated.";
+            break;
+        case 'deleted':
+            $success_message = "Holiday successfully deleted.";
+            break;
+    }
+}
+
+// Form for adding or editing holidays
+function generate_holiday_form(?string $edit_date = null, ?string $edit_description = null, ?int $edit_id = null) : void
 {
     $form = new Form(Form::METHOD_POST);
 
@@ -35,36 +47,55 @@ function generate_holiday_form() : void
     $form->setAttributes($attributes);
 
     $fieldset = new ElementFieldset();
-    $fieldset->addLegend(get_vocab('add_holiday'));
+    
+    // Dynamic legend based on add or edit mode
+    $legend_text = ($edit_id !== null) ? get_vocab('update_holiday') : get_vocab('add_holiday');
+    $fieldset->addLegend($legend_text);
+
+    // Hidden field to pass edit_holiday_id if we are editing
+    if ($edit_id !== null) {
+        $form->addHiddenInput('edit_holiday_id', $edit_id);
+    }
 
     // Holiday date field with type="date"
     $field = new FieldInputText();
     $field->setLabel(get_vocab('holiday_date'))
-          ->setControlAttributes(array('id' => 'holiday_date', 'name' => 'holiday_date', 'type' => 'date', 'required' => true));
+          ->setControlAttributes(array(
+              'id' => 'holiday_date',
+              'name' => 'holiday_date',
+              'type' => 'date',
+              'value' => $edit_date ?? '',  // Set value if editing
+              'required' => true
+          ));
     $fieldset->addElement($field);
 
     // Description field
     $field = new FieldInputText();
     $field->setLabel(get_vocab('description'))
-          ->setControlAttributes(array('id' => 'description', 'name' => 'description', 'maxlength' => 255));
+          ->setControlAttributes(array(
+              'id' => 'description',
+              'name' => 'description',
+              'maxlength' => 255,
+              'value' => $edit_description ?? ''  // Set value if editing
+          ));
     $fieldset->addElement($field);
 
-    // Submit button
+    // Submit button label changes based on whether we are adding or editing
+    $submit_label = ($edit_id !== null) ? get_vocab('update_holiday') : get_vocab('add_holiday');
     $field = new FieldInputSubmit();
-    $field->setControlAttributes(array('value' => get_vocab('add_holiday'), 'class' => 'submit'));
+    $field->setControlAttributes(array('value' => $submit_label, 'class' => 'submit'));
     $fieldset->addElement($field);
 
     $form->addElement($fieldset);
     $form->render();
-
 }
 
-// Form for deleting holidays
+// Form for deleting holidays with confirmation prompt
 function generate_holiday_delete_form(int $holiday_id) : void
 {
     $form = new Form(Form::METHOD_POST);
 
-    $attributes = array('action' => multisite('holiday.php'));
+    $attributes = array('action' => multisite('holiday.php'), 'class' => 'inline-form', 'onsubmit' => 'return confirmDeletion()'); // JS confirmation
     $form->setAttributes($attributes);
 
     // Hidden input for holiday ID
@@ -72,29 +103,90 @@ function generate_holiday_delete_form(int $holiday_id) : void
 
     // Delete button
     $element = new ElementInputImage();
-	$element->setAttributes(array('class'  => 'button',
-								  'src'    => 'images/delete.png',
-								  'width'  => '16',
-								  'height' => '16',
-								  'title'  => get_vocab('delete_holiday'),
-								  'alt'    => get_vocab('delete_holiday')));
+    $element->setAttributes(array('class'  => 'button',
+                                  'src'    => 'images/delete.png',
+                                  'width'  => '16',
+                                  'height' => '16',
+                                  'title'  => get_vocab('delete_holiday'),
+                                  'alt'    => get_vocab('delete_holiday')));
     $form->addElement($element);
 
     $form->render();
 }
 
-// Handle form submissions for adding or deleting holidays
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['holiday_date']) && isset($_POST['description'])) {
-        $date = $_POST['holiday_date'];
-        $description = $_POST['description'];
+// Form for editing holidays
+function generate_holiday_edit_form(int $holiday_id) : void
+{
+    $form = new Form(Form::METHOD_POST);
 
-		$query = "INSERT INTO mrbs_holidays (holiday_date, description) VALUES (?, ?)";
-		db()->query($query, array($date, $description));
+    $attributes = array('action' => multisite('holiday.php'), 'class' => 'inline-form');
+    $form->setAttributes($attributes);
+
+    // Hidden input for holiday ID
+    $form->addHiddenInput('edit_holiday_id', $holiday_id);
+
+    // Edit button
+    $element = new ElementInputImage();
+    $element->setAttributes(array('class'  => 'button',
+                                  'src'    => 'images/edit.png',
+                                  'width'  => '16',
+                                  'height' => '16',
+                                  'title'  => get_vocab('edit_holiday'),
+                                  'alt'    => get_vocab('edit_holiday')));
+    $form->addElement($element);
+
+    $form->render();
+}
+
+// Handle form submissions for adding, editing, or deleting holidays
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['edit_holiday_id']) && !isset($_POST['holiday_date'])) {
+        // Handle editing holiday (loading data into the form)
+        $holiday_id = (int)$_POST['edit_holiday_id'];
+        // Fetch holiday data to populate the form
+        $holiday = db()->query("SELECT holiday_date, description FROM mrbs_holidays WHERE id = ?", [$holiday_id])->next_row_keyed();
+        
+        // Set the values for the form
+        $edit_date = $holiday['holiday_date'];
+        $edit_description = $holiday['description'];
+        $edit_id = $holiday_id;  // Pass the id to the form to enable update functionality
+    }
+    elseif (isset($_POST['holiday_date']) && isset($_POST['description'])) {
+        // If an edit ID is provided, update the holiday instead of adding
+        if (isset($_POST['edit_holiday_id'])) {
+            $holiday_id = (int)$_POST['edit_holiday_id'];
+            $date = $_POST['holiday_date'];
+            $description = $_POST['description'];
+
+            // Update the holiday entry in the database
+            $query = "UPDATE mrbs_holidays SET holiday_date = ?, description = ? WHERE id = ?";
+            db()->query($query, array($date, $description, $holiday_id));
+            
+            // Redirect with success message
+            header("Location: holiday.php?success=updated");
+            exit;
+        }
+        else {
+            // Adding a new holiday
+            $date = $_POST['holiday_date'];
+            $description = $_POST['description'];
+
+            $query = "INSERT INTO mrbs_holidays (holiday_date, description) VALUES (?, ?)";
+            db()->query($query, array($date, $description));
+
+            // Redirect with success message
+            header("Location: holiday.php?success=added");
+            exit;
+        }
     }
     elseif (isset($_POST['delete_holiday_id'])) {
+        // Deleting a holiday
         $holiday_id = (int)$_POST['delete_holiday_id'];
         db()->query("DELETE FROM mrbs_holidays WHERE id = ?", array($holiday_id));
+        
+        // Redirect with success message
+        header("Location: holiday.php?success=deleted");
+        exit;
     }
 }
 
@@ -102,11 +194,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $context = array();
 print_header($context);
 
+// Display success message if any
+if ($success_message) {
+    echo "<div class=\"success-message\">$success_message</div>";
+}
+
 echo "<h2>" . get_vocab("holiday_management") . "</h2>\n";
 
 // Holiday form section
-echo "<div id=\"holiday_form\">\n"; //orig = holiday_form
-generate_holiday_form();
+echo "<div id=\"holiday_form\">\n";
+generate_holiday_form($edit_date ?? null, $edit_description ?? null, $edit_id ?? null); // Pass edit values if set
 echo "</div>\n";
 
 echo "<h2>" . get_vocab("existing_holidays") . "</h2>\n";
@@ -116,7 +213,7 @@ echo "<table class=\"admin_table display\">\n";
 echo "<thead>\n<tr>\n";
 echo "<th>" . get_vocab("holiday_date") . "</th>\n";
 echo "<th>" . get_vocab("description") . "</th>\n";
-echo "<th>&nbsp;</th>\n";  // For delete button
+echo "<th>&nbsp;</th>\n";  // For edit and delete buttons
 echo "</tr>\n</thead>\n<tbody>\n";
 
 // Fetch and display holidays from the database
@@ -125,8 +222,14 @@ while ($row = $holidays->next_row_keyed()) {
     echo "<tr>\n";
     echo "<td>" . htmlspecialchars($row['holiday_date']) . "</td>\n";
     echo "<td>" . htmlspecialchars($row['description']) . "</td>\n";
-    echo "<td>\n<div>\n";
-    generate_holiday_delete_form($row['id']);  // Delete button for each holiday
+    echo "<td>\n<div class=\"button-container\">\n";
+    
+    // Generate edit button
+    generate_holiday_edit_form($row['id']);
+    
+    // Generate delete button
+    generate_holiday_delete_form($row['id']);
+    
     echo "</div>\n</td>\n";
     echo "</tr>\n";
 }
@@ -135,3 +238,4 @@ echo "</tbody>\n</table>\n";
 echo "</div>\n";
 
 print_footer();
+?>
