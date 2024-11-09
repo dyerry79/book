@@ -22,8 +22,10 @@ if (!is_admin()) {
 // CSRF token check
 Form::checkToken(true);
 
-// Define success message based on URL parameter
+// Define success and error messages
 $success_message = '';
+$error_message = '';
+
 if (isset($_GET['success'])) {
     switch ($_GET['success']) {
         case 'added':
@@ -153,30 +155,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     elseif (isset($_POST['holiday_date']) && isset($_POST['description'])) {
         // If an edit ID is provided, update the holiday instead of adding
-        if (isset($_POST['edit_holiday_id'])) {
-            $holiday_id = (int)$_POST['edit_holiday_id'];
-            $date = $_POST['holiday_date'];
-            $description = $_POST['description'];
+        $date = $_POST['holiday_date'];
+        $description = $_POST['description'];
 
-            // Update the holiday entry in the database
-            $query = "UPDATE mrbs_holidays SET holiday_date = ?, description = ? WHERE id = ?";
-            db()->query($query, array($date, $description, $holiday_id));
-            
-            // Redirect with success message
-            header("Location: holiday.php?success=updated");
-            exit;
+        // Validate that the holiday date is not empty
+        if (empty($date)) {
+            $error_message = "Please provide a valid date for the holiday.";
         }
         else {
-            // Adding a new holiday
-            $date = $_POST['holiday_date'];
-            $description = $_POST['description'];
+            if (isset($_POST['edit_holiday_id'])) {
+                $holiday_id = (int)$_POST['edit_holiday_id'];
 
-            $query = "INSERT INTO mrbs_holidays (holiday_date, description) VALUES (?, ?)";
-            db()->query($query, array($date, $description));
+                // Update the holiday entry in the database
+                $query = "UPDATE mrbs_holidays SET holiday_date = ?, description = ? WHERE id = ?";
+                db()->query($query, array($date, $description, $holiday_id));
 
-            // Redirect with success message
-            header("Location: holiday.php?success=added");
-            exit;
+                // Redirect with success message
+                header("Location: holiday.php?success=updated");
+                exit;
+            }
+            else {
+                // Adding a new holiday
+                $query = "INSERT INTO mrbs_holidays (holiday_date, description) VALUES (?, ?)";
+                db()->query($query, array($date, $description));
+
+                // Redirect with success message
+                header("Location: holiday.php?success=added");
+                exit;
+            }
         }
     }
     elseif (isset($_POST['delete_holiday_id'])) {
@@ -184,7 +190,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $holiday_id = (int)$_POST['delete_holiday_id'];
         db()->query("DELETE FROM mrbs_holidays WHERE id = ?", array($holiday_id));
         
-        // Redirect with success message
         header("Location: holiday.php?success=deleted");
         exit;
     }
@@ -194,9 +199,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $context = array();
 print_header($context);
 
-// Display success message if any
-if ($success_message) {
-    echo "<div class=\"success-message\">$success_message</div>";
+// Display success or error message if any
+if ($success_message || $error_message) {
+    $message_class = $success_message ? "success-message" : "error-message";
+    $message_text = $success_message ?: $error_message;
+    echo "<div class=\"$message_class\">$message_text</div>";
 }
 
 echo "<h2>" . get_vocab("holiday_management") . "</h2>\n";
