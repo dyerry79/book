@@ -153,7 +153,7 @@ function mrbsCheckFree(array $booking, ?int $ignore_entry_id=null, ?int $ignore_
     }
 
     // enclose the viewday etc. links in a span to make it easier for JavaScript to strip them out
-    $vars = array('page_date' => $existing_start_date->format('Y-m-d'),
+    $vars = array('page_date' => $existing_start_date->getISODate(),
                   'area'  => $area,
                   'room'  => $room_id);
 
@@ -601,20 +601,19 @@ function mrbsCheckPolicy(array $booking, ?int $ignore_entry_id=null, ?int $ignor
   // Check min_booking_date
   if ($min_booking_date_enabled && !$delete)
   {
-    list($y, $m, $d) = explode('-', $min_booking_date);
-    if (isset($y) && isset($m) && isset($d) && checkdate($m, $d, $y))
+    // Use DateTimeImmutable because we will need the original date for the error message
+    $date_immutable = DateTimeImmutable::createFromFormat($format=DateTime::ISO8601_DATE, $min_booking_date);
+    // Check that the date is valid (createFromFormat will allow, for example, months > 12)
+    if (($date_immutable === false) || ($date_immutable->format($format) !== $min_booking_date))
     {
-      if ($booking['start_time'] < mktime(0, 0, 0, $m, $d, $y))
-      {
-        $violations[] = get_vocab(
-          'earliest_booking_date',
-          datetime_format($datetime_formats['date'], mktime(0, 0, 0, $m, $d, $y))
-        );
-      }
+      throw new \Exception('MRBS config error: invalid $min_booking_date ' . "'$min_booking_date'");
     }
-    else
+    if ($booking['start_time'] < $date_immutable->setTime(0, 0)->getTimestamp())
     {
-      trigger_error("Invalid min_book_ahead_date", E_USER_NOTICE);
+      $violations[] = get_vocab(
+        'earliest_booking_date',
+        datetime_format($datetime_formats['date'], $date_immutable->getTimestamp())
+      );
     }
   }
 
@@ -622,7 +621,7 @@ function mrbsCheckPolicy(array $booking, ?int $ignore_entry_id=null, ?int $ignor
   if ($max_booking_date_enabled && !$delete)
   {
     // Use DateTimeImmutable because we will need the original date for the error message
-    $date_immutable = DateTimeImmutable::createFromFormat($format='Y-m-d', $max_booking_date);
+    $date_immutable = DateTimeImmutable::createFromFormat($format=DateTime::ISO8601_DATE, $max_booking_date);
     // Check that the date is valid (createFromFormat will allow, for example, months > 12)
     if (($date_immutable === false) || ($date_immutable->format($format) !== $max_booking_date))
     {
@@ -1389,22 +1388,6 @@ function mrbsCreateSingleEntry(array $data) : int
 function mrbsCreateRepeatEntry(array $data)
 {
   return mrbsCreateEntry(_tbl('repeat'), $data);
-}
-
-
-function trimToEndOfMonth(&$month, &$day, &$year)
-{
-  // Make the month valid so that we can use checkdate()
-  while ($month > 12)
-  {
-    $month -= 12;
-    $year++;
-  }
-  // Make the date valid if day is more than number of days in month:
-  while (!checkdate($month, $day, $year) && ($day > 1))
-  {
-    $day--;
-  }
 }
 
 
