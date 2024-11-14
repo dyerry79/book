@@ -139,7 +139,7 @@ $eveningends_minutes   = 59;   // must be integer in range 0-59
  ******************/
 $auth['only_admin_can_book_repeat'] = true;
 //$auth['allow_anonymous_booking'] = true;
-$holidays[2024] = array('2024-11-20');
+$holidays[2024] = array('2024-11-21');
 $prevent_booking_on_holidays = true;
 
 /*************
@@ -167,15 +167,24 @@ $reminders_enabled = TRUE;
 $confirmation_enabled = TRUE; // Allows bookings to be marked as "tentative"
 $confirmed_default = TRUE; // Default status. (TRUE: confirmed, FALSE: tentative)
 //$select_options['entry.name'] = array('Physics', 'Chemistry', 'Biology');
-//$select_options['entry.name'] = array('c' => 'Coffee',
-//                                          's' => 'Sandwiches',
-//                                          'h' => 'Hot Lunch');
+
 
 /*************
  * Added Columns 
  *************/
 $is_mandatory_field['entry.description'] = true;
- 
+
+$vocab_override['en']['entry.venue_setup'] = "Venue Setup";
+$select_options['entry.venue_setup'] = array('PC' => 'Classroom  - 1,100 pax',
+                                             'PB' => 'Banquet    - 500 pax',
+                                             'PF' => 'Conference - 500 pax',
+											 '1C' => 'Classroom  - 40 pax',
+                                             '1B' => 'Banquet    - 30 pax',
+                                             '1F' => 'Conference - 30 pax',
+											 '2C' => 'Classroom  - 200 pax',
+                                             '2B' => 'Banquet    - 160 pax',
+                                             '2F' => 'Conference - 160 pax',);
+
  //mrbs_entry and mbrs_repeat tables
 $vocab_override['en']['entry.contact_name'] = "Contact Person";
 $is_mandatory_field['entry.contact_name'] = true;

@@ -26,7 +26,6 @@ Form::checkToken(true);
 $success_message = '';
 $error_message = '';
 
-// Success message handling
 if (isset($_GET['success'])) {
     switch ($_GET['success']) {
         case 'added':
@@ -40,25 +39,6 @@ if (isset($_GET['success'])) {
             break;
     }
 }
-
-// ----------- XSS Detection Function (New Addition) -----------
-function contains_xss($input) {
-    $xss_patterns = [
-        '/<script\b[^>]*>(.*?)<\/script>/is',    // Match <script> tags
-        '/on\w+\s*=\s*["\'].*["\']/i',           // Match event handlers (e.g., onclick, onerror)
-        '/javascript:/i',                        // Match javascript: protocol
-        '/<iframe\b[^>]*>(.*?)<\/iframe>/is',    // Match <iframe> tags
-        '/<img\b[^>]*on\w+\s*=\s*["\'].*["\']/i' // Match <img onerror= or similar events
-    ];
-    
-    foreach ($xss_patterns as $pattern) {
-        if (preg_match($pattern, $input)) {
-            return true;  // XSS detected
-        }
-    }
-    return false; // No XSS detected
-}
-// --------------------------------------------------------------
 
 // Form for adding or editing holidays
 function generate_holiday_form(?string $edit_date = null, ?string $edit_description = null, ?int $edit_id = null) : void
@@ -166,6 +146,7 @@ function generate_holiday_edit_form(int $holiday_id) : void
 
 // Handle form submissions for adding, editing, or deleting holidays
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+	
     if (isset($_POST['edit_holiday_id']) && !isset($_POST['holiday_date'])) {
         // Handle editing holiday (loading data into the form)
         $holiday_id = (int)$_POST['edit_holiday_id'];
@@ -177,53 +158,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $edit_description = $holiday['description'];
         $edit_id = $holiday_id;  // Pass the id to the form to enable update functionality
     }
-	elseif (isset($_POST['holiday_date']) && isset($_POST['description'])) {
-		$date = $_POST['holiday_date'];
-		$description = $_POST['description'];
+    elseif (isset($_POST['holiday_date']) && isset($_POST['description'])) {
+        // If an edit ID is provided, update the holiday instead of adding
+        $date = $_POST['holiday_date'];
+        $description = $_POST['description'];
 
-		// ----------- XSS Check Addition -----------
-        if (contains_xss($description)) {
-            $error_message = "Your description contains potentially harmful content. Please remove any scripts or special attributes.";
-        } else {
-            // Proceed with sanitization and database checks
-            $description = htmlspecialchars(strip_tags($description), ENT_QUOTES, 'UTF-8');
-            // ----------------------------------------
+        // Validate that the holiday date is not empty
+        if (empty($date)) {
+            $error_message = "Please provide a valid date for the holiday.";
+        }
+        else {
+            if (isset($_POST['edit_holiday_id'])) {
+                $holiday_id = (int)$_POST['edit_holiday_id'];
 
-            // Validate that the holiday date is not empty
-            if (empty($date)) {
-                $error_message = "Please provide a valid date for the holiday.";
+                // Update the holiday entry in the database
+                $query = "UPDATE mrbs_holidays SET holiday_date = ?, description = ? WHERE id = ?";
+                db()->query($query, array($date, $description, $holiday_id));
+
+                // Redirect with success message
+                header("Location: holiday.php?success=updated");
+                exit;
             }
             else {
-                // Check for duplicate date
-                $existing_holiday = db()->query("SELECT COUNT(*) AS count FROM mrbs_holidays WHERE holiday_date = ?", [$date])->next_row_keyed();
-                if ($existing_holiday['count'] > 0 && !isset($_POST['edit_holiday_id'])) {
-                    $error_message = "This date is already set as a holiday.";
-                }
-                else {
-                    if (isset($_POST['edit_holiday_id'])) {
-                        $holiday_id = (int)$_POST['edit_holiday_id'];
+                // Adding a new holiday
+                $query = "INSERT INTO mrbs_holidays (holiday_date, description) VALUES (?, ?)";
+                db()->query($query, array($date, $description));
 
-                        // Update the holiday entry in the database
-                        $query = "UPDATE mrbs_holidays SET holiday_date = ?, description = ? WHERE id = ?";
-                        db()->query($query, array($date, $description, $holiday_id));
-
-                        // Redirect with success message
-                        header("Location: holiday.php?success=updated");
-                        exit;
-                    }
-                    else {
-                        // Adding a new holiday
-                        $query = "INSERT INTO mrbs_holidays (holiday_date, description) VALUES (?, ?)";
-                        db()->query($query, array($date, $description));
-
-                        // Redirect with success message
-                        header("Location: holiday.php?success=added");
-                        exit;
-                    }
-                }
+                // Redirect with success message
+                header("Location: holiday.php?success=added");
+                exit;
             }
         }
-	}
+    }
     elseif (isset($_POST['delete_holiday_id'])) {
         // Deleting a holiday
         $holiday_id = (int)$_POST['delete_holiday_id'];
@@ -240,7 +206,13 @@ print_header($context);
 
 echo '<div id="popupMessage" class="popup-message"></div>';
 
-// Display success or error messages
+// Display success or error message if any
+/*if ($success_message || $error_message) {
+    $message_class = $success_message ? "success-message" : "error-message";
+    $message_text = $success_message ?: $error_message;
+    echo "<div class=\"$message_class\">$message_text</div>";
+}*/
+
 if ($success_message || $error_message) {
     $message_class = $success_message ? "success-message" : "error-message";
     $message_text = $success_message ?: $error_message;
@@ -249,13 +221,15 @@ if ($success_message || $error_message) {
           });</script>";
 }
 
-// Render holiday form and table
 echo "<h2>" . get_vocab("holiday_management") . "</h2>\n";
+
+// Holiday form section
 echo "<div id=\"holiday_form\">\n";
-generate_holiday_form($edit_date ?? null, $edit_description ?? null, $edit_id ?? null);
+generate_holiday_form($edit_date ?? null, $edit_description ?? null, $edit_id ?? null); // Pass edit values if set
 echo "</div>\n";
 
 echo "<h2>" . get_vocab("existing_holidays") . "</h2>\n";
+// Display the existing holidays in a table
 echo "<div id=\"holiday_table\">\n";
 echo "<table class=\"admin_table display\">\n";
 echo "<thead>\n<tr>\n";
@@ -286,3 +260,4 @@ echo "</tbody>\n</table>\n";
 echo "</div>\n";
 
 print_footer();
+

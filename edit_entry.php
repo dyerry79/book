@@ -13,6 +13,7 @@ use MRBS\Form\ElementInputSubmit;
 use MRBS\Form\ElementLabel;
 use MRBS\Form\ElementSelect;
 use MRBS\Form\ElementSpan;
+use MRBS\Form\Field;
 use MRBS\Form\FieldDiv;
 use MRBS\Form\FieldInputCheckbox;
 use MRBS\Form\FieldInputCheckboxGroup;
@@ -106,8 +107,7 @@ foreach ($fields as $field)
   }
 }
 
-
-function get_field_create_by(string $create_by, bool $disabled=false)
+function get_field_create_by(string $create_by, bool $disabled=false) : Field
 {
   $params = array('label'    => get_vocab('createdby'),
                   'name'     => 'create_by',
@@ -119,8 +119,7 @@ function get_field_create_by(string $create_by, bool $disabled=false)
   return get_user_field($params);
 }
 
-
-function get_field_name(string $value, $disabled=false)
+function get_field_name(string $value, bool $disabled=false) : Field
 {
   $params = array('label'    => get_vocab('namebooker'),
                   'name'     => 'name',
@@ -630,7 +629,9 @@ function get_field_custom(string $key, bool $disabled=false)
     //return get_field_entry_input($params); //old code; codes below are for notation
 	/*------------- display notation pop-up -------------*/
     $field = get_field_entry_input($params);
-
+	if ($key == 'actual_start' or $key == 'actual_end' or $key == 'actual_status'){
+		$field = new ElementInputHidden();
+	}
 	if ($key == 'contact_requirements') {
 		$div = new ElementDiv();
 
@@ -1162,6 +1163,40 @@ function getbookingdate(int $t, bool $is_end=false) : array
   return $date;
 }
 
+// Handle AJAX request for venue setups
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['room_id'])) {
+    $roomId = intval($_POST['room_id']); // Sanitize input
+
+    // Define the venue setups from the configuration
+    $venue_setups = $select_options['entry.venue_setup'];
+
+    // Here you can filter the setups based on the roomId
+    // For example, if roomId corresponds to specific setups
+    // You could have a mapping of room IDs to setup keys
+    $filtered_options = [];
+    if ($roomId == 1) {
+        $filtered_options = array_filter($venue_setups, function($key) {
+            return in_array($key, ['PC', 'PB', 'PF', '1C', '1B', '1F']);
+        }, ARRAY_FILTER_USE_KEY);
+    } elseif ($roomId == 2) {
+        $filtered_options = array_filter($venue_setups, function($key) {
+            return in_array($key, ['2C', '2B', '2F']);
+        }, ARRAY_FILTER_USE_KEY);
+    }
+
+    $options = '<option value="">Select a venue setup</option>';
+    foreach ($filtered_options as $id => $name) {
+        $options .= "<option value='{$id}'>{$name}</option>";
+    }
+
+    echo $options; // Output the options for the venue setup dropdown
+    exit; // Prevent further execution
+}
+
+
+
+
+
 
 // Get non-standard form variables
 $hour = get_form_var('hour', 'int');
@@ -1276,7 +1311,7 @@ if (isset($id))
   // for this area.
   $area = get_area($entry['room_id']);
   get_area_settings($area);
-
+	
   $private = $entry['private'];
   if ($private_mandatory && !is_book_admin($entry['room_id']))
   {
@@ -1463,7 +1498,6 @@ else
   $registration_opens_enabled   = (bool) $registration_opens_enabled_default;
   $registration_closes          = (int) $registration_closes_default;
   $registration_closes_enabled  = (bool) $registration_closes_enabled_default;
-
   // Get the hour and minute, converting a period to its MRBS time
   // Set some sensible defaults
   if ($enable_periods)

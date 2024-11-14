@@ -6,6 +6,7 @@ namespace MRBS;
 // Generates the HTML for a <link> element
 function link_html(string $href, bool $add_version=false, ?string $media=null) : string
 {
+  
   $html = '<link rel="stylesheet" type="text/css" href="';
   $value = ($add_version) ? add_version($href) : $href;
   $html .= htmlspecialchars($value) . '"';
@@ -21,7 +22,7 @@ function link_html(string $href, bool $add_version=false, ?string $media=null) :
 
 global $custom_css_url;
 global $debug;
-
+//echo '<link rel="icon" type="image/x-icon" href="favicon.ico">';
 echo link_html(($debug) ? 'jquery/ui/css/jquery-ui.structure.css' : 'jquery/ui/css/jquery-ui.structure.min.css', true);
 echo link_html(($debug) ? 'jquery/ui/css/cupertino/jquery-ui.theme.css' : 'jquery/ui/css/cupertino/jquery-ui.theme.min.css', true);
 echo link_html(($debug) ? 'jquery/datatables/datatables.css' : 'jquery/datatables/datatables.min.css', true);

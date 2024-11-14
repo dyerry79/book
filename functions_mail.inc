@@ -567,7 +567,8 @@ function create_body(array $data, ?array $mail_previous, bool $compare, bool $se
     $columns = Columns::getInstance(_tbl('entry'));
     foreach ($columns as $column)
     {
-      if (!in_array($column->name, $standard_fields['entry']))
+      if (!in_array($column->name, $standard_fields['entry']) &&
+          !in_array($column->name, array('terms_and_conditions','actual_start','actual_end','actual_status','timestamp')))	  
       {
         $key = $column->name;
         $value = $data[$key];

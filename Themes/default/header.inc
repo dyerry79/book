@@ -18,10 +18,9 @@ function print_head(bool $simple=false) : void
   global $refresh_rate;
 
   echo "<head>\n";
-
+  
   echo "<meta charset=\"" . get_charset() . "\">\n";
   
-  echo '<link rel="icon" type="image/x-icon" href="favicon.ico">';
 
   // Set IE=edge so that IE10 will display MRBS properly, even if compatibility mode is used
   // on the browser.  If we don't do this then MRBS will treat IE10 as an unsupported browser
@@ -52,9 +51,10 @@ function print_head(bool $simple=false) : void
     echo "<meta http-equiv=\"Refresh\" content=\"$refresh_rate\">\n";
     echo "</noscript>\n";
   }
-
+  
   echo "<title>" . get_vocab("mrbs") . "</title>\n";
-
+  echo "<link rel='icon' type='image/x-icon' href='favicon.ico'>\n";
+  
   require_once MRBS_ROOT . "/style.inc";
 
   if (!$simple)
@@ -220,31 +220,54 @@ function print_menu_items(string $query) : void
   // Define the main menu items
   echo '<a href="index.php">Home</a>';
   
+  
   // Add your regular menu items
-  $menu_items = array(
-    'report' => 'report.php',
-    'import' => 'import.php'
-  );
+  //$menu_items = array(
+  //  'report' => 'report.php',
+  //  'import' => 'import.php'
+  //);
 
-  if ($kiosk_mode_enabled) {
-    $menu_items['kiosk'] = 'kiosk.php';
-  }
+  //if ($kiosk_mode_enabled) {
+  //  $menu_items['kiosk'] = 'kiosk.php';
+  //}
 
   // Print main menu items as usual
-  foreach ($menu_items as $token => $page) {
-    if (checkAuthorised($page, true)) {
-      $url = $page;
-      if ($query !== '') {
-        $url .= "?$query";
-      }
-      echo '<a href="' . htmlspecialchars(multisite($url)) . '">' . get_vocab($token) . "</a>\n";
-    }
-  }
+  //foreach ($menu_items as $token => $page) {
+  //  if (checkAuthorised($page, true)) {
+  //    $url = $page;
+  //    if ($query !== '') {
+  //      $url .= "?$query";
+  //    }
+  //    echo '<a href="' . htmlspecialchars(multisite($url)) . '">' . get_vocab($token) . "</a>\n";
+  //  }
+  //}
 
   // Check if the user is logged in before displaying the "Setup" menu
   if (is_logged_in()) {
     // For admin users, display the full "Setup" menu with "Rooms" and "Users" options
     if (is_user_admin()) {
+	  echo '<a href="manage.php">Manage</a>';
+	  // Add your regular menu items
+	  $menu_items = array(
+		'report' => 'report.php',
+		'import' => 'import.php'
+	  );
+	  
+	  if ($kiosk_mode_enabled) {
+		$menu_items['kiosk'] = 'kiosk.php';
+	  }
+
+	  // Print main menu items as usual
+	  foreach ($menu_items as $token => $page) {
+		if (checkAuthorised($page, true)) {
+		  $url = $page;
+		  if ($query !== '') {
+			$url .= "?$query";
+		  }
+		  echo '<a href="' . htmlspecialchars(multisite($url)) . '">' . get_vocab($token) . "</a>\n";
+		}
+	  }
+	  	  
       echo '<div class="dropdown">';
       echo '<a href="#" class="dropbtn">Setup</a>';
       echo '<div class="dropdown-content">';
